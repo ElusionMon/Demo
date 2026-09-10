@@ -1,0 +1,59 @@
+# Project: Engine
+# Makefile created by Dev-C++ 5.11
+
+CPP      = g++.exe
+CC       = gcc.exe
+WINDRES  = windres.exe
+OBJ      = Geometry.o Gameplay.o System.o Resources.o Renderer.o Physics.o Math.o TransformComponent.o Audio.o Interface2D.o DebugDraw.o
+LINKOBJ  = Geometry.o Gameplay.o System.o Resources.o Renderer.o Physics.o Math.o TransformComponent.o Audio.o Interface2D.o DebugDraw.o
+LIBS     = -L"E:/Dev-Cpp/MinGW64/lib" -L"E:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib" -static-libgcc E:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib/libd3d9.a E:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/lib/libd3dx9_43.a -lwinmm
+INCS     = -I"E:/Dev-Cpp/MinGW64/include" -I"E:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"E:/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include"
+CXXINCS  = -I"E:/Dev-Cpp/MinGW64/include" -I"E:/Dev-Cpp/MinGW64/x86_64-w64-mingw32/include" -I"E:/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include" -I"E:/Dev-Cpp/MinGW64/lib/gcc/x86_64-w64-mingw32/4.9.2/include/c++"
+BIN      = Engine.a
+CXXFLAGS = $(CXXINCS) -std=c++11
+CFLAGS   = $(INCS) -std=c++11
+RM       = rm.exe -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(LINKOBJ)
+	ar r $(BIN) $(LINKOBJ)
+	ranlib $(BIN)
+
+Geometry.o: Geometry.cpp
+	$(CPP) -c Geometry.cpp -o Geometry.o $(CXXFLAGS)
+
+Gameplay.o: Gameplay.cpp
+	$(CPP) -c Gameplay.cpp -o Gameplay.o $(CXXFLAGS)
+
+System.o: System.cpp
+	$(CPP) -c System.cpp -o System.o $(CXXFLAGS)
+
+Resources.o: Resources.cpp
+	$(CPP) -c Resources.cpp -o Resources.o $(CXXFLAGS)
+
+Renderer.o: Renderer.cpp
+	$(CPP) -c Renderer.cpp -o Renderer.o $(CXXFLAGS)
+
+Physics.o: Physics.cpp
+	$(CPP) -c Physics.cpp -o Physics.o $(CXXFLAGS)
+
+Math.o: Math.cpp
+	$(CPP) -c Math.cpp -o Math.o $(CXXFLAGS)
+
+TransformComponent.o: TransformComponent.cpp
+	$(CPP) -c TransformComponent.cpp -o TransformComponent.o $(CXXFLAGS)
+
+Audio.o: Audio.cpp
+	$(CPP) -c Audio.cpp -o Audio.o $(CXXFLAGS)
+
+Interface2D.o: Interface2D.cpp
+	$(CPP) -c Interface2D.cpp -o Interface2D.o $(CXXFLAGS)
+
+DebugDraw.o: DebugDraw.cpp
+	$(CPP) -c DebugDraw.cpp -o DebugDraw.o $(CXXFLAGS)
