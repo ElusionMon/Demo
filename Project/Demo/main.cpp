@@ -17,6 +17,8 @@ Object*         g_PlayerHead = nullptr;
 
 ParticleSystem* g_Bullets = nullptr;
 
+AudioSystem     g_Audio;
+
 float           g_PlayerAngle = 0.0f;
 float           g_PlayerPitch = 0.0f;
 float           g_MoveSpeed = 0.08f;
@@ -138,6 +140,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     g_Cam = new Camera(1920.0f / 1080.0f);
     g_UI.Init(dev, 20, "Consolas");
     g_Scene = new Scene(&g_Physics);
+    
+	if (!g_Audio.Load("jump.wav", "jump")) {
+    	MessageBoxA(NULL, "jump.wav not found", "Error", MB_OK);
+	}
 
     g_Bullets = new ParticleSystem(500);
     g_Bullets->Init(dev);
@@ -263,9 +269,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
                 g_Physics.SetVelocity(g_PlayerBody->id, vx, vz);
                 
                 if (g_JumpRequested) {
-                    g_Physics.Jump(g_PlayerBody->id, 0.2f);
-                    g_JumpRequested = false;
-                }
+    				if (g_Physics.GetPosition(g_PlayerBody->id).y == g_PlayerBody->transform.globalPosition.y) {
+    				}
+    				g_Physics.Jump(g_PlayerBody->id, 0.2f);
+    				g_Audio.Play("jump");
+    				g_JumpRequested = false;
+				}
                 
                 if (wantShoot && g_ShootCooldown <= 0) {
                     D3DXVECTOR3 spawnPos = g_PlayerHead->transform.globalPosition;

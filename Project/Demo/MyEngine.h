@@ -17,9 +17,6 @@
 
 namespace MyEngine {
 
-    // ==========================================
-    // FORWARD DECLARATIONS
-    // ==========================================
     class Object;
     class TransformSystem;
     class Physics;
@@ -28,9 +25,6 @@ namespace MyEngine {
     class ResourceManager;
     struct Vertex;
 
-    // ==========================================
-    // VERTEX
-    // ==========================================
     struct Vertex {
         float x, y, z;
         float nx, ny, nz;
@@ -39,9 +33,6 @@ namespace MyEngine {
         static const DWORD FVF = D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_TEX1;
     };
 
-    // ==========================================
-    // RENDERER
-    // ==========================================
     class Renderer {
         LPDIRECT3D9 d3d = nullptr;
         LPDIRECT3DDEVICE9 device = nullptr;
@@ -56,9 +47,6 @@ namespace MyEngine {
         void SetupFog(bool enable, DWORD color, float start, float end);
     };
 
-    // ==========================================
-    // MESH
-    // ==========================================
     struct AnimKeyframe {
         std::vector<D3DXVECTOR3> positions;
         std::vector<D3DXVECTOR3> normals;
@@ -90,9 +78,6 @@ namespace MyEngine {
         void UpdateBounds();
     };
 
-    // ==========================================
-    // TRANSFORM COMPONENT
-    // ==========================================
     class TransformComponent {
     public:
         D3DXVECTOR3 localPosition = D3DXVECTOR3(0, 0, 0);
@@ -129,9 +114,6 @@ namespace MyEngine {
         void MarkChildrenDirty(TransformComponent& current);
     };
 
-    // ==========================================
-    // RESOURCE MANAGER
-    // ==========================================
     class ResourceManager {
         LPDIRECT3DDEVICE9 dev;
         std::map<std::string, std::shared_ptr<IDirect3DTexture9>> cache;
@@ -144,9 +126,6 @@ namespace MyEngine {
         int GetCacheSize() { return cache.size(); }
     };
 
-    // ==========================================
-    // ATTACH POINT
-    // ==========================================
     struct AttachPoint {
         std::string name;
         D3DXVECTOR3 offset;
@@ -154,9 +133,6 @@ namespace MyEngine {
         D3DXVECTOR3 GetWorldPosition(const D3DXVECTOR3& parentPos, const D3DXMATRIX& parentRot);
     };
 
-    // ==========================================
-    // ATTACHMENT SYSTEM
-    // ==========================================
     enum class AttachSlotType {
         CUSTOM = 0,
         HAND_RIGHT,
@@ -188,13 +164,13 @@ namespace MyEngine {
         std::map<std::string, AttachPoint> slots;
         std::vector<AttachmentInfo> attachedChildren;
         TransformSystem* transformSystem;
-        int ownerId;  // <-- ID владельца компонента
+        int ownerId;
         
     public:
         AttachComponent();
         ~AttachComponent();
         void SetTransformSystem(TransformSystem* ts) { transformSystem = ts; }
-        void SetOwnerId(int id) { ownerId = id; }  // <-- Установка ID владельца
+        void SetOwnerId(int id) { ownerId = id; }
         int GetOwnerId() const { return ownerId; }
         
         void AddSlot(const std::string& name, const D3DXVECTOR3& offset, const D3DXVECTOR3& rotation = D3DXVECTOR3(0,0,0));
@@ -219,9 +195,6 @@ namespace MyEngine {
         AttachSlotType StringToSlotType(const std::string& name) const;
     };
 
-    // ==========================================
-    // CAMERA
-    // ==========================================
     class Camera {
         D3DXVECTOR3 pos, target;
         D3DXMATRIX matView, matProj;
@@ -237,9 +210,6 @@ namespace MyEngine {
         D3DXMATRIX GetProjMatrix() { return matProj; }
     };
 
-    // ==========================================
-    // INPUT
-    // ==========================================
     class Input {
         bool keys[256];
         bool prevKeys[256];
@@ -253,9 +223,6 @@ namespace MyEngine {
         POINT GetMousePos() { return mousePos; }
     };
 
-    // ==========================================
-    // TEXT
-    // ==========================================
     class Text {
         LPD3DXFONT font = nullptr;
     public:
@@ -264,9 +231,6 @@ namespace MyEngine {
         void Draw(std::string str, int x, int y, DWORD color);
     };
 
-    // ==========================================
-    // SPRITE RENDERER
-    // ==========================================
     class SpriteRenderer {
         LPD3DXSPRITE spriteAPI = nullptr;
     public:
@@ -277,9 +241,6 @@ namespace MyEngine {
         void Draw(std::shared_ptr<IDirect3DTexture9> tex, int x, int y, int w, int h, DWORD color = 0xFFFFFFFF);
     };
 
-    // ==========================================
-    // BUTTON
-    // ==========================================
     class Button {
         int x, y, width, height;
         bool isHovered = false;
@@ -290,9 +251,6 @@ namespace MyEngine {
         void Draw(SpriteRenderer& sprite, Text& text, std::shared_ptr<IDirect3DTexture9> texNormal, std::shared_ptr<IDirect3DTexture9> texHover, std::string label, DWORD textColor);
     };
 
-    // ==========================================
-    // LIGHT
-    // ==========================================
     class Light {
         D3DLIGHT9 lightData;
         int index;
@@ -304,9 +262,6 @@ namespace MyEngine {
         void SetDirection(LPDIRECT3DDEVICE9 dev, D3DXVECTOR3 direction);
     };
 
-    // ==========================================
-    // EFFECT
-    // ==========================================
     class Effect {
         float timer = 0, intensity = 0;
         bool active = false;
@@ -318,9 +273,6 @@ namespace MyEngine {
         D3DXVECTOR3 GetShakeOffset() { return shakeOffset; }
     };
 
-    // ==========================================
-    // PARTICLE SYSTEM
-    // ==========================================
     struct Particle {
         D3DXVECTOR3 pos = {0,0,0};
         D3DXVECTOR3 vel = {0,0,0};
@@ -345,9 +297,6 @@ namespace MyEngine {
         int GetCount() { return particles.size(); }
     };
 
-    // ==========================================
-    // PHYSICS
-    // ==========================================
     enum CollisionType { COL_AABB, COL_OBB, COL_SPHERE, COL_CAPSULE };
 
     struct Body {
@@ -385,9 +334,6 @@ namespace MyEngine {
         bool CheckOBBvsOBB(const Body& a, const Body& b, D3DXVECTOR3& outOverlap, D3DXVECTOR3& outAxis);
     };
 
-    // ==========================================
-    // FRUSTUM
-    // ==========================================
     class Frustum {
         D3DXPLANE planes[6];
     public:
@@ -396,9 +342,6 @@ namespace MyEngine {
         bool CheckSphere(const D3DXVECTOR3& center, float radius);
     };
 
-    // ==========================================
-    // DEBUG DRAW
-    // ==========================================
     class DebugDraw {
         LPDIRECT3DDEVICE9 dev;
         bool initialized;
@@ -413,9 +356,6 @@ namespace MyEngine {
         void Shutdown();
     };
 
-    // ==========================================
-    // OBJECT
-    // ==========================================
     class Object {
     public:
         enum AnimState { ANIM_IDLE, ANIM_WALK, ANIM_JUMP, ANIM_ATTACK, ANIM_CUSTOM };
@@ -453,9 +393,6 @@ namespace MyEngine {
         TransformComponent* GetTransform() { return &transform; }
     };
 
-    // ==========================================
-    // COMPLEX OBJECT
-    // ==========================================
     struct PartInfo {
         Object* obj;
         D3DXVECTOR3 offset;
@@ -506,9 +443,6 @@ namespace MyEngine {
         int GetPartCount() { return (int)parts.size(); }
     };
 
-    // ==========================================
-    // SCENE
-    // ==========================================
     class Scene {
         std::vector<Object*> objects;
         std::vector<ComplexObject*> complexObjects;
@@ -531,9 +465,6 @@ namespace MyEngine {
         void Clear();
     };
 
-    // ==========================================
-    // SKYBOX
-    // ==========================================
     class Skybox {
         LPDIRECT3DVERTEXBUFFER9 vb = nullptr;
         LPDIRECT3DINDEXBUFFER9  ib = nullptr;
@@ -547,24 +478,18 @@ namespace MyEngine {
         void Draw(LPDIRECT3DDEVICE9 dev, D3DXVECTOR3 camPos);
     };
 
-    // ==========================================
-    // AUDIO
-    // ==========================================
     class AudioSystem {
-        std::map<std::string, std::string> soundAliases;
-        int aliasCounter = 0;
-        std::string GenerateAlias();
-    public:
-        ~AudioSystem();
-        bool Load(std::string path, std::string soundName);
-        void Play(std::string soundName, bool loop = false);
-        void Stop(std::string soundName);
-        void SetVolume(std::string soundName, int volume);
-    };
+    	std::map<std::string, std::string> soundAliases;
+    	int aliasCounter = 0;
+    	std::string GenerateAlias();
+	public:
+    	~AudioSystem();
+    	bool Load(std::string path, std::string soundName);
+    	void Play(std::string soundName, bool loop = false);
+    	void Stop(std::string soundName);
+    	void SetVolume(std::string soundName, int volume);
+	};
 
-    // ==========================================
-    // UTILITIES
-    // ==========================================
     std::vector<Vertex> LoadVertices(std::string path);
 }
 #endif
