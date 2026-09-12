@@ -27,13 +27,14 @@ bool            g_JumpRequested = false;
 float           g_ShootCooldown = 0.0f;
 const float     g_ShootDelay = 0.15f;
 
-Object* CreateSimpleCube(LPDIRECT3DDEVICE9 dev, int id, D3DXVECTOR3 pos, D3DXVECTOR3 size, D3DCOLORVALUE color) {
+Object* CreateSimpleCube(LPDIRECT3DDEVICE9 dev, int id, D3DXVECTOR3 pos, D3DXVECTOR3 size, 
+                         D3DCOLORVALUE color, float texScale = 1.0f) {
     std::vector<Vertex> verts;
     
     float hx = size.x / 2;
     float hy = size.y / 2;
     float hz = size.z / 2;
-    
+
     D3DXVECTOR3 corners[8] = {
         D3DXVECTOR3(-hx, -hy, -hz), D3DXVECTOR3( hx, -hy, -hz),
         D3DXVECTOR3( hx, -hy,  hz), D3DXVECTOR3(-hx, -hy,  hz),
@@ -42,35 +43,64 @@ Object* CreateSimpleCube(LPDIRECT3DDEVICE9 dev, int id, D3DXVECTOR3 pos, D3DXVEC
     };
     
     D3DXVECTOR3 normals[6] = {
-        D3DXVECTOR3(0, -1, 0), D3DXVECTOR3(0, 1, 0),
-        D3DXVECTOR3(-1, 0, 0), D3DXVECTOR3(1, 0, 0),
-        D3DXVECTOR3(0, 0, -1), D3DXVECTOR3(0, 0, 1)
+        D3DXVECTOR3(0, -1, 0),
+        D3DXVECTOR3(0, 1, 0),
+        D3DXVECTOR3(-1, 0, 0),
+        D3DXVECTOR3(1, 0, 0),
+        D3DXVECTOR3(0, 0, -1),
+        D3DXVECTOR3(0, 0, 1)
     };
-    
-    int indices[36] = {
-        0,1,2, 0,2,3,
-        4,6,5, 4,7,6,
-        0,4,1, 1,4,5,
-        2,6,3, 3,6,7,
-        0,3,7, 0,7,4,
-        1,5,2, 2,5,6
+
+    D3DXVECTOR2 faceSize[6] = {
+        D3DXVECTOR2(size.x, size.z),
+        D3DXVECTOR2(size.x, size.z),
+        D3DXVECTOR2(size.z, size.y),
+        D3DXVECTOR2(size.z, size.y),
+        D3DXVECTOR2(size.x, size.y),
+        D3DXVECTOR2(size.x, size.y)
     };
+
+    struct FaceCorner { int idx; float tu, tv; };
     
-    for (int i = 0; i < 36; i++) {
-        Vertex v;
-        v.x = corners[indices[i]].x;
-        v.y = corners[indices[i]].y;
-        v.z = corners[indices[i]].z;
+    FaceCorner faces[6][4] = {
+        { {0, 0, 1}, {1, 1, 1}, {2, 1, 0}, {3, 0, 0} },
+        { {4, 0, 1}, {7, 0, 0}, {6, 1, 0}, {5, 1, 1} },
+        { {0, 0, 1}, {3, 1, 1}, {7, 1, 0}, {4, 0, 0} },
+        { {1, 0, 0}, {5, 0, 1}, {6, 1, 1}, {2, 1, 0} },
+        { {0, 1, 1}, {4, 1, 0}, {5, 0, 0}, {1, 0, 1} },
+        { {3, 0, 1}, {2, 1, 1}, {6, 1, 0}, {7, 0, 0} }
+    };
+
+    for (int f = 0; f < 6; f++) {
+        FaceCorner& c0 = faces[f][0];
+        FaceCorner& c1 = faces[f][1];
+        FaceCorner& c2 = faces[f][2];
+        FaceCorner& c3 = faces[f][3];
+
+        FaceCorner triVerts[6] = { c0, c1, c2, c0, c2, c3 };
+
+        float repeatU = faceSize[f].x / texScale;
+        float repeatV = faceSize[f].y / texScale;
         
-        int faceIdx = i / 6;
-        v.nx = normals[faceIdx].x;
-        v.ny = normals[faceIdx].y;
-        v.nz = normals[faceIdx].z;
-        
-        v.color = D3DCOLOR_COLORVALUE(color.r, color.g, color.b, color.a);
-        v.tu = 0;
-        v.tv = 0;
-        verts.push_back(v);
+        for (int i = 0; i < 6; i++) {
+            Vertex v;
+            int ci = triVerts[i].idx;
+            
+            v.x = corners[ci].x;
+            v.y = corners[ci].y;
+            v.z = corners[ci].z;
+            
+            v.nx = normals[f].x;
+            v.ny = normals[f].y;
+            v.nz = normals[f].z;
+            
+            v.color = D3DCOLOR_COLORVALUE(color.r, color.g, color.b, color.a);
+            
+            v.tu = triVerts[i].tu * repeatU;
+            v.tv = triVerts[i].tv * repeatV;
+            
+            verts.push_back(v);
+        }
     }
     
     Object* obj = new Object(id);
@@ -86,8 +116,9 @@ Object* CreateSimpleCube(LPDIRECT3DDEVICE9 dev, int id, D3DXVECTOR3 pos, D3DXVEC
 }
 
 void CreateWall(LPDIRECT3DDEVICE9 dev, int id, D3DXVECTOR3 pos, D3DXVECTOR3 size, D3DCOLORVALUE color) {
-    Object* wall = CreateSimpleCube(dev, id, pos, size, color);
+    Object* wall = CreateSimpleCube(dev, id, pos, size, color, 2.0f);
     if (wall) {
+        wall->mesh.SetTexture(g_Res->GetTexture("wall.png"));
         g_Scene->AddObject(wall);
         g_Physics.Add(id, pos, size, true, COL_OBB, D3DXVECTOR3(0,0,0), false);
     }
@@ -149,10 +180,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     g_Bullets->Init(dev);
     
     D3DCOLORVALUE bodyColor = {0.2f, 0.3f, 0.8f, 1.0f};
-    g_PlayerBody = CreateSimpleCube(dev, 1, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0.8f, 0.8f, 0.8f), bodyColor);
+    g_PlayerBody = CreateSimpleCube(dev, 1, D3DXVECTOR3(0, 0, 0), D3DXVECTOR3(0.8f, 0.8f, 0.8f), bodyColor, 1.0f);
     
     D3DCOLORVALUE headColor = {1.0f, 0.5f, 0.7f, 1.0f};
-    g_PlayerHead = CreateSimpleCube(dev, 2, D3DXVECTOR3(0, 0.6f, 0), D3DXVECTOR3(0.5f, 0.5f, 0.5f), headColor);
+    g_PlayerHead = CreateSimpleCube(dev, 2, D3DXVECTOR3(0, 0.6f, 0), D3DXVECTOR3(0.5f, 0.5f, 0.5f), headColor, 1.0f);
     
     if (g_PlayerBody) {
         g_Scene->AddObject(g_PlayerBody);
@@ -164,41 +195,44 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
         g_Scene->GetTransformSystem()->SetParent(2, 1);
     }
     
-    D3DCOLORVALUE groundColor = {0.3f, 0.3f, 0.3f, 1.0f};
-    Object* ground = CreateSimpleCube(dev, 100, D3DXVECTOR3(0, -1.0f, 0), D3DXVECTOR3(25.0f, 0.5f, 25.0f), groundColor);
-    if (ground) {
-        g_Scene->AddObject(ground);
-        g_Physics.Add(100, D3DXVECTOR3(0, -1.0f, 0), D3DXVECTOR3(25.0f, 0.5f, 25.0f), true, COL_OBB, D3DXVECTOR3(0,0,0), false);
-    }
+    D3DCOLORVALUE groundColor = {1.0f, 1.0f, 1.0f, 1.0f};
+	D3DXVECTOR2 groundRepeat(25.0f / 2.0f, 25.0f / 2.0f);
+	Object* ground = CreateSimpleCube(dev, 100, D3DXVECTOR3(0, -1.0f, 0), D3DXVECTOR3(25.0f, 0.5f, 25.0f), groundColor, 2.0f);
+	if (ground) {
+    	ground->mesh.SetTexture(g_Res->GetTexture("floor.png"));
+    	g_Scene->AddObject(ground);
+    	g_Physics.Add(100, D3DXVECTOR3(0, -1.0f, 0), D3DXVECTOR3(25.0f, 0.5f, 25.0f), true, COL_OBB, D3DXVECTOR3(0,0,0), false);
+	}
     
-    D3DCOLORVALUE wallColor = {0.7f, 0.2f, 0.2f, 1.0f};
+    D3DCOLORVALUE wallColor = {1.0f, 1.0f, 1.0f, 1.0f};
     CreateWall(dev, 101, D3DXVECTOR3(-11, 0.0f, 0), D3DXVECTOR3(0.5f, 3.0f, 22.5f), wallColor);
     CreateWall(dev, 102, D3DXVECTOR3(11, 0.0f, 0), D3DXVECTOR3(0.5f, 3.0f, 22.5f), wallColor);
     CreateWall(dev, 103, D3DXVECTOR3(0, 0.0f, -11), D3DXVECTOR3(22.5f, 3.0f, 0.5f), wallColor);
     CreateWall(dev, 104, D3DXVECTOR3(0, 0.0f, 11), D3DXVECTOR3(22.5f, 3.0f, 0.5f), wallColor);
     
-    D3DCOLORVALUE rampColor = {0.2f, 0.8f, 0.3f, 1.0f};
-    Object* ramp = CreateSimpleCube(dev, 105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), rampColor);
-    if (ramp) {
-        ramp->transform.localRotation.x = 0.4f;
-        g_Scene->AddObject(ramp);
-        g_Physics.Add(105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), true, COL_OBB, 
-                      D3DXVECTOR3(0.4f, 0, 0), false);
-    }
+    D3DCOLORVALUE rampColor = {1.0f, 1.0f, 1.0f, 1.0f};
+	Object* ramp = CreateSimpleCube(dev, 105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), rampColor, 2.0f);
+	if (ramp) {
+    	ramp->mesh.SetTexture(g_Res->GetTexture("wall.png"));
+    	ramp->transform.localRotation.x = 0.4f;
+    	g_Scene->AddObject(ramp);
+    	g_Physics.Add(105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), true, COL_OBB, D3DXVECTOR3(0.4f, 0, 0), false);
+	}
     
-    D3DCOLORVALUE bonusColor = {1.0f, 0.9f, 0.2f, 1.0f};
-    D3DXVECTOR3 bonusPositions[] = {
-        D3DXVECTOR3(-4, -0.6f, 4), D3DXVECTOR3(0, -0.6f, 5), 
-        D3DXVECTOR3(-5, -0.6f, -3), D3DXVECTOR3(3, -0.6f, -4)
-    };
-    
-    for (int i = 0; i < 4; i++) {
-        Object* bonus = CreateSimpleCube(dev, 200 + i, bonusPositions[i], D3DXVECTOR3(0.4f, 0.4f, 0.4f), bonusColor);
-        if (bonus) {
-            g_Scene->AddObject(bonus);
-            g_Physics.Add(200 + i, bonusPositions[i], D3DXVECTOR3(0.4f, 0.4f, 0.4f), false, COL_OBB, D3DXVECTOR3(0,0,0), false);
-        }
-    }
+    D3DCOLORVALUE boxColor = {1.0f, 1.0f, 1.0f, 1.0f};
+	D3DXVECTOR3 boxPositions[] = {
+    	D3DXVECTOR3(-4, -0.6f, 4), D3DXVECTOR3(0, -0.6f, 5), 
+    	D3DXVECTOR3(-5, -0.6f, -3), D3DXVECTOR3(3, -0.6f, -4)
+	};
+
+	for (int i = 0; i < 4; i++) {
+    	Object* box = CreateSimpleCube(dev, 200 + i, boxPositions[i], D3DXVECTOR3(0.4f, 0.4f, 0.4f), boxColor, 0.4f);
+    	if (box) {
+        	box->mesh.SetTexture(g_Res->GetTexture("box.png"));
+        	g_Scene->AddObject(box);
+        	g_Physics.Add(200 + i, boxPositions[i], D3DXVECTOR3(0.4f, 0.4f, 0.4f), false, COL_OBB, D3DXVECTOR3(0,0,0), false);
+    	}
+	}
 
     ShowWindow(hWnd, SW_SHOW);
     UpdateWindow(hWnd);
@@ -329,7 +363,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
             D3DXMATRIX view, proj;
             D3DXVECTOR3 upVec(0, 1, 0);
             D3DXMatrixLookAtLH(&view, &camPos, &targetPos, &upVec);
-            D3DXMatrixPerspectiveFovLH(&proj, D3DX_PI / 4.0f, 1920.0f / 1080.0f, 0.5f, 500.0f);
+            D3DXMatrixPerspectiveFovLH(&proj, D3DX_PI / 4.0f, 1920.0f / 1080.0f, 0.1f, 200.0f);
             
             dev->SetTransform(D3DTS_VIEW, &view);
             dev->SetTransform(D3DTS_PROJECTION, &proj);
