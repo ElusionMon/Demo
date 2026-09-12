@@ -168,9 +168,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
 
     g_Input.Init(hWnd);
     g_Res = new ResourceManager(dev);
-    g_Cam = new Camera(1920.0f / 1080.0f);
+    
+    RECT rc;
+	GetClientRect(hWnd, &rc);
+	float realAspect = (float)(rc.right - rc.left) / (float)(rc.bottom - rc.top);
+	g_Cam = new Camera(realAspect);
     g_UI.Init(dev, 20, "Consolas");
     g_Scene = new Scene(&g_Physics);
+    
+    std::shared_ptr<IDirect3DTexture9> skyTex = g_Res->GetTexture("skybox.jpg");
+	if (skyTex) { g_Sky.Create(dev, skyTex); }
     
 	if (!g_Audio.Load("jump.wav", "jump")) {
     	MessageBoxA(NULL, "jump.wav not found", "Error", MB_OK);
@@ -196,7 +203,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     }
     
     D3DCOLORVALUE groundColor = {1.0f, 1.0f, 1.0f, 1.0f};
-	D3DXVECTOR2 groundRepeat(25.0f / 2.0f, 25.0f / 2.0f);
+	D3DXVECTOR2 groundRepeat(25.0f / 1.0f, 25.0f / 1.0f);
 	Object* ground = CreateSimpleCube(dev, 100, D3DXVECTOR3(0, -1.0f, 0), D3DXVECTOR3(25.0f, 0.5f, 25.0f), groundColor, 2.0f);
 	if (ground) {
     	ground->mesh.SetTexture(g_Res->GetTexture("floor.png"));
@@ -205,10 +212,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
 	}
     
     D3DCOLORVALUE wallColor = {1.0f, 1.0f, 1.0f, 1.0f};
-    CreateWall(dev, 101, D3DXVECTOR3(-11, 0.0f, 0), D3DXVECTOR3(0.5f, 3.0f, 22.5f), wallColor);
-    CreateWall(dev, 102, D3DXVECTOR3(11, 0.0f, 0), D3DXVECTOR3(0.5f, 3.0f, 22.5f), wallColor);
-    CreateWall(dev, 103, D3DXVECTOR3(0, 0.0f, -11), D3DXVECTOR3(22.5f, 3.0f, 0.5f), wallColor);
-    CreateWall(dev, 104, D3DXVECTOR3(0, 0.0f, 11), D3DXVECTOR3(22.5f, 3.0f, 0.5f), wallColor);
+    CreateWall(dev, 101, D3DXVECTOR3(-11, 0.7f, 0), D3DXVECTOR3(0.5f, 3.0f, 22.5f), wallColor);
+    CreateWall(dev, 102, D3DXVECTOR3(11, 0.7f, 0), D3DXVECTOR3(0.5f, 3.0f, 22.5f), wallColor);
+    CreateWall(dev, 103, D3DXVECTOR3(0, 0.7f, -11), D3DXVECTOR3(22.5f, 3.0f, 0.5f), wallColor);
+    CreateWall(dev, 104, D3DXVECTOR3(0, 0.7f, 11), D3DXVECTOR3(22.5f, 3.0f, 0.5f), wallColor);
     
     D3DCOLORVALUE rampColor = {1.0f, 1.0f, 1.0f, 1.0f};
 	Object* ramp = CreateSimpleCube(dev, 105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), rampColor, 2.0f);
@@ -226,7 +233,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
 	};
 
 	for (int i = 0; i < 4; i++) {
-    	Object* box = CreateSimpleCube(dev, 200 + i, boxPositions[i], D3DXVECTOR3(0.4f, 0.4f, 0.4f), boxColor, 0.4f);
+    	Object* box = CreateSimpleCube(dev, 200 + i, boxPositions[i], D3DXVECTOR3(0.4f, 0.4f, 0.4f), boxColor, 0.2f);
     	if (box) {
         	box->mesh.SetTexture(g_Res->GetTexture("box.png"));
         	g_Scene->AddObject(box);
@@ -347,6 +354,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
                 
                 g_Bullets->Update(FIXED_DELTA);
                 
+                g_Sky.Update(FIXED_DELTA, 0.02f);
+                
                 accumulator -= FIXED_DELTA;
             }
             D3DXVECTOR3 targetPos = g_PlayerBody ? g_PlayerBody->transform.globalPosition : D3DXVECTOR3(0,0,0);
@@ -363,7 +372,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
             D3DXMATRIX view, proj;
             D3DXVECTOR3 upVec(0, 1, 0);
             D3DXMatrixLookAtLH(&view, &camPos, &targetPos, &upVec);
-            D3DXMatrixPerspectiveFovLH(&proj, D3DX_PI / 4.0f, 1920.0f / 1080.0f, 0.1f, 200.0f);
+            D3DXMatrixPerspectiveFovLH(&proj, D3DX_PI / 4.0f, realAspect, 0.5f, 500.0f);
             
             dev->SetTransform(D3DTS_VIEW, &view);
             dev->SetTransform(D3DTS_PROJECTION, &proj);
@@ -372,6 +381,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
             frustum.Construct(view, proj);
             
             g_Renderer.Begin();
+            
+            g_Sky.Draw(dev, camPos);
             
             g_Scene->DrawAll(dev, frustum);
             g_Bullets->Draw(dev, camPos);
