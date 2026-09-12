@@ -15,7 +15,7 @@ namespace MyEngine {
         d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
         d3dpp.BackBufferFormat = D3DFMT_UNKNOWN;
         d3dpp.EnableAutoDepthStencil = TRUE;
-        d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
+        d3dpp.AutoDepthStencilFormat = D3DFMT_D16; //D24S8
 
         if (FAILED(d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, 
            D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp, &device))) {
@@ -26,6 +26,13 @@ namespace MyEngine {
         device->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
         device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
         device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+        device->SetRenderState(D3DRS_WRAP0, D3DWRAP_U | D3DWRAP_V);
+        
+        device->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_WRAP);
+    	device->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_WRAP);
+    	device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+    	device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+    	device->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
         return true;
     }
 

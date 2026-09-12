@@ -479,16 +479,16 @@ namespace MyEngine {
     };
 
     class AudioSystem {
-        std::map<std::string, std::string> soundAliases;
-        int aliasCounter = 0;
-        std::string GenerateAlias();
-    public:
-        ~AudioSystem();
-        bool Load(std::string path, std::string soundName);
-        void Play(std::string soundName, bool loop = false);
-        void Stop(std::string soundName);
-        void SetVolume(std::string soundName, int volume);
-    };
+    	std::map<std::string, std::string> soundAliases;
+    	int aliasCounter = 0;
+    	std::string GenerateAlias();
+	public:
+    	~AudioSystem();
+    	bool Load(std::string path, std::string soundName);
+    	void Play(std::string soundName, bool loop = false);
+    	void Stop(std::string soundName);
+    	void SetVolume(std::string soundName, int volume);
+	};
 
     std::vector<Vertex> LoadVertices(std::string path);
 }
