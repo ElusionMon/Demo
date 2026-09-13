@@ -220,7 +220,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int) {
     D3DCOLORVALUE rampColor = {1.0f, 1.0f, 1.0f, 1.0f};
 	Object* ramp = CreateSimpleCube(dev, 105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), rampColor, 2.0f);
 	if (ramp) {
-    	ramp->mesh.SetTexture(g_Res->GetTexture("wall.png"));
+    	ramp->mesh.SetTexture(g_Res->GetTexture("wood.png"));
     	ramp->transform.localRotation.x = 0.4f;
     	g_Scene->AddObject(ramp);
     	g_Physics.Add(105, D3DXVECTOR3(5, -1.5f, 8), D3DXVECTOR3(3.0f, 3.0f, 3.0f), true, COL_OBB, D3DXVECTOR3(0.4f, 0, 0), false);

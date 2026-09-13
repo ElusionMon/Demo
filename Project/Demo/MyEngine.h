@@ -330,7 +330,7 @@ namespace MyEngine {
         int GetBodyCount() { return bodies.size(); }
         const std::vector<Body>& GetBodies() const { return bodies; }
     private:
-        void ResolveCollision(Body& dyn, const Body& st);
+        void ResolveCollision(Body& a, Body& b);
         bool CheckOBBvsOBB(const Body& a, const Body& b, D3DXVECTOR3& outOverlap, D3DXVECTOR3& outAxis);
     };
 
