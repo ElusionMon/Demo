@@ -98,23 +98,28 @@ namespace MyEngine {
     }
 
     void Physics::Update(float dt) {
-        for (size_t i = 0; i < bodies.size(); i++) {
-            Body& b = bodies[i];
-            if (!b.isStatic && !b.isKinematic) {
-                b.velocity.y += GRAVITY;
-                b.pos += b.velocity;
-                b.velocity.x *= 0.85f;
-                b.velocity.z *= 0.85f;
-                b.isGrounded = false;
+    	for (size_t i = 0; i < bodies.size(); i++) {
+        	Body& b = bodies[i];
+        	if (!b.isStatic && !b.isKinematic) {
+            	b.velocity.y += GRAVITY;
+            	b.pos += b.velocity;
+            	b.velocity.x *= 0.85f;
+            	b.velocity.z *= 0.85f;
+            	b.isGrounded = false;
+        	}
+    	}
 
-                for (size_t j = 0; j < bodies.size(); j++) {
-                    if (i != j) {
-                        ResolveCollision(b, bodies[j]);
-                    }
-                }
-            }
-        }
-    }
+    	for (size_t i = 0; i < bodies.size(); i++) {
+        	Body& b = bodies[i];
+        	if (b.isStatic || b.isKinematic) continue;
+        
+        	for (size_t j = 0; j < bodies.size(); j++) {
+            	if (i != j) {
+                	ResolveCollision(b, bodies[j]);
+            	}
+        	}
+    	}
+	}
 
     bool Physics::CheckOBBvsOBB(const Body& a, const Body& b, D3DXVECTOR3& outOverlap, D3DXVECTOR3& outAxis) {
         D3DXVECTOR3 axesA[3] = {
@@ -177,95 +182,162 @@ namespace MyEngine {
         return true;
     }
 
-    void Physics::ResolveCollision(Body& dyn, const Body& st) {
-        if (dyn.id == st.id) return;
-
-        if (dyn.colType == COL_OBB && st.colType == COL_OBB) {
-            D3DXVECTOR3 overlap, axis;
-            if (CheckOBBvsOBB(st, dyn, overlap, axis)) {
-                dyn.pos += overlap;
-                if (axis.y > 0.7f) {
-                    dyn.velocity.y = 0.0f;
-                    dyn.isGrounded = true;
-                } else if (axis.y < -0.7f) {
-                    if (dyn.velocity.y > 0) dyn.velocity.y = 0.0f;
-                } else {
-                    dyn.velocity.x = 0.0f;
-                    dyn.velocity.z = 0.0f;
-                }
-            }
-            return;
-        }
-
-        if (dyn.colType == COL_AABB && st.colType == COL_AABB) {
-            float dx = dyn.pos.x - st.pos.x;
-            float dy = dyn.pos.y - st.pos.y;
-            float dz = dyn.pos.z - st.pos.z;
-            float px = (dyn.size.x + st.size.x) * 0.5f - fabsf(dx);
-            float py = (dyn.size.y + st.size.y) * 0.5f - fabsf(dy);
-            float pz = (dyn.size.z + st.size.z) * 0.5f - fabsf(dz);
+    void Physics::ResolveCollision(Body& a, Body& b) {
+    	if (a.id == b.id) return;
+    	bool aIsPlayer = (a.id == 1);
+    	bool bIsPlayer = (b.id == 1);
+    	
+    	if (a.colType == COL_OBB && b.colType == COL_OBB) {
+        	D3DXVECTOR3 overlap, axis;
+        	if (CheckOBBvsOBB(b, a, overlap, axis)) {
+            	if (aIsPlayer || bIsPlayer) {
+                	Body& player = aIsPlayer ? a : b;
+                	Body& other  = aIsPlayer ? b : a;
+                	float sign = aIsPlayer ? 1.0f : -1.0f;
+                
+                	player.pos += overlap * sign;
+                
+                	if (!other.isStatic && !other.isKinematic) {
+                    	other.velocity.x += player.velocity.x * 0.5f;
+                    	other.velocity.z += player.velocity.z * 0.5f;
+                    	other.pos -= overlap * sign * 0.3f;
+                	}
+                
+                	if (axis.y > 0.7f) {
+                    	player.velocity.y = 0.0f;
+                    	player.isGrounded = true;
+                	} else if (axis.y < -0.7f) {
+                    	if (player.velocity.y > 0) player.velocity.y = 0.0f;
+                	}
+                
+                	return;
+            	}
             
-            if (px > 0 && py > 0 && pz > 0) {
-                float stTopY = st.pos.y + st.size.y * 0.5f;
-                float dynBottomY = dyn.pos.y - dyn.size.y * 0.5f;
+            	float aPush = a.isStatic ? 0.0f : 0.5f;
+            	float bPush = b.isStatic ? 0.0f : 0.5f;
+            
+            	if (!a.isStatic && !a.isKinematic) a.pos += overlap * aPush;
+            	if (!b.isStatic && !b.isKinematic) b.pos -= overlap * bPush;
+            
+            	if (axis.y > 0.7f) {
+                	if (!a.isStatic) { a.velocity.y = 0.0f; a.isGrounded = true; }
+                	if (!b.isStatic) { b.velocity.y = 0.0f; b.isGrounded = true; }
+            	} else if (axis.y < -0.7f) {
+                	if (!a.isStatic && a.velocity.y > 0) a.velocity.y = 0.0f;
+                	if (!b.isStatic && b.velocity.y > 0) b.velocity.y = 0.0f;
+            	} else {
+                	if (!a.isStatic) { a.velocity.x = 0.0f; a.velocity.z = 0.0f; }
+                	if (!b.isStatic) { b.velocity.x = 0.0f; b.velocity.z = 0.0f; }
+            	}
+        	}
+        	return;
+    	}
+    
+    	if (a.colType == COL_AABB && b.colType == COL_AABB) {
+        	float dx = a.pos.x - b.pos.x;
+        	float dy = a.pos.y - b.pos.y;
+        	float dz = a.pos.z - b.pos.z;
+        	float px = (a.size.x + b.size.x) * 0.5f - fabsf(dx);
+        	float py = (a.size.y + b.size.y) * 0.5f - fabsf(dy);
+        	float pz = (a.size.z + b.size.z) * 0.5f - fabsf(dz);
+        
+        	if (px > 0 && py > 0 && pz > 0) {
 
-                if (dy > 0 && (dynBottomY >= stTopY - fabsf(dyn.velocity.y) - 0.05f)) {
-                    dyn.pos.y = stTopY + dyn.size.y * 0.5f;
-                    dyn.velocity.y = 0.0f;
-                    dyn.isGrounded = true;
-                    return;
-                }
-
-                const float MAX_STEP_HEIGHT = 0.3f;
-                if (dy > 0 && stTopY > dynBottomY && (stTopY - dynBottomY) <= MAX_STEP_HEIGHT) {
-                    dyn.pos.y = stTopY + dyn.size.y * 0.5f;
-                    dyn.velocity.y = 0.0f;
-                    dyn.isGrounded = true;
-                    return;
-                }
-
-                if (py < px && py < pz) {
-                    if (dy > 0) {
-                        dyn.pos.y += py;
-                        if (dyn.velocity.y < 0) dyn.velocity.y = 0.0f;
-                        dyn.isGrounded = true;
-                    } else {
-                        dyn.pos.y -= py;
-                        if (dyn.velocity.y > 0) dyn.velocity.y = 0.0f;
-                    }
-                } else if (px < py && px < pz) {
-                    dyn.pos.x += (dx > 0) ? px : -px;
-                    dyn.velocity.x = 0.0f;
-                } else {
-                    dyn.pos.z += (dz > 0) ? pz : -pz;
-                    dyn.velocity.z = 0.0f;
-                }
-            }
-            return;
-        }
-
-        if (dyn.colType == COL_AABB && st.colType == COL_OBB) {
-            Body temp = dyn;
-            temp.colType = COL_OBB;
-            D3DXMatrixIdentity(&temp.matRotation);
-            D3DXVECTOR3 overlap, axis;
-            if (CheckOBBvsOBB(st, temp, overlap, axis)) {
-                dyn.pos += overlap;
-                if (axis.y > 0.7f) dyn.isGrounded = true;
-            }
-            return;
-        }
-
-        if (dyn.colType == COL_OBB && st.colType == COL_AABB) {
-            Body temp = st;
-            temp.colType = COL_OBB;
-            D3DXMatrixIdentity(&temp.matRotation);
-            D3DXVECTOR3 overlap, axis;
-            if (CheckOBBvsOBB(temp, dyn, overlap, axis)) {
-                dyn.pos += overlap;
-                if (axis.y > 0.7f) dyn.isGrounded = true;
-            }
-            return;
-        }
-    }
+            	if (aIsPlayer || bIsPlayer) {
+                	Body& player = aIsPlayer ? a : b;
+                	Body& other  = aIsPlayer ? b : a;
+                
+                	if (py < px && py < pz) {
+                    	if (dy > 0) {
+                        	player.pos.y = other.pos.y + other.size.y * 0.5f + player.size.y * 0.5f;
+                        	player.velocity.y = 0.0f;
+                        	player.isGrounded = true;
+                    	} else {
+                        	player.pos.y = other.pos.y - other.size.y * 0.5f - player.size.y * 0.5f;
+                        	if (player.velocity.y > 0) player.velocity.y = 0.0f;
+                    	}
+                	} else if (px < pz) {
+                    	player.pos.x += (dx > 0) ? px : -px;
+                    	player.velocity.x = 0.0f;
+                    	if (!other.isStatic && !other.isKinematic) {
+                        	other.velocity.x += player.velocity.x * 0.5f;
+                    	}
+                	} else {
+                    	player.pos.z += (dz > 0) ? pz : -pz;
+                    	player.velocity.z = 0.0f;
+                    	if (!other.isStatic && !other.isKinematic) {
+                        	other.velocity.z += player.velocity.z * 0.5f;
+                    	}
+                	}
+                	return;
+            	}
+            	if (py < px && py < pz) {
+                	if (dy > 0) {
+                    	if (!a.isStatic) { a.pos.y += py; a.velocity.y = 0.0f; a.isGrounded = true; }
+                    	if (!b.isStatic) { b.pos.y -= py; b.velocity.y = 0.0f; b.isGrounded = true; }
+                	} else {
+                    	if (!a.isStatic) { a.pos.y -= py; if (a.velocity.y > 0) a.velocity.y = 0.0f; }
+                    	if (!b.isStatic) { b.pos.y += py; if (b.velocity.y > 0) b.velocity.y = 0.0f; }
+                	}
+            	} else if (px < pz) {
+                	if (!a.isStatic) { a.pos.x += (dx > 0) ? px : -px; a.velocity.x = 0.0f; }
+                	if (!b.isStatic) { b.pos.x -= (dx > 0) ? px : -px; b.velocity.x = 0.0f; }
+            	} else {
+                	if (!a.isStatic) { a.pos.z += (dz > 0) ? pz : -pz; a.velocity.z = 0.0f; }
+                	if (!b.isStatic) { b.pos.z -= (dz > 0) ? pz : -pz; b.velocity.z = 0.0f; }
+            	}
+        	}
+        	return;
+    	}
+    	
+    	if (a.colType == COL_OBB && b.colType == COL_AABB) {
+        	Body temp = b;
+        	temp.colType = COL_OBB;
+        	D3DXMatrixIdentity(&temp.matRotation);
+        	D3DXVECTOR3 overlap, axis;
+        	if (CheckOBBvsOBB(temp, a, overlap, axis)) {
+            	if (aIsPlayer || bIsPlayer) {
+                	Body& player = aIsPlayer ? a : b;
+                	Body& other  = aIsPlayer ? b : a;
+                	float sign = aIsPlayer ? 1.0f : -1.0f;
+                	player.pos += overlap * sign;
+                	if (!other.isStatic && !other.isKinematic) {
+                    	other.velocity.x += player.velocity.x * 0.5f;
+                    	other.velocity.z += player.velocity.z * 0.5f;
+                	}
+                	if (axis.y > 0.7f) { player.velocity.y = 0.0f; player.isGrounded = true; }
+            	} else {
+                	if (!a.isStatic) a.pos += overlap * 0.5f;
+                	if (!b.isStatic) b.pos -= overlap * 0.5f;
+                	if (axis.y > 0.7f) a.isGrounded = true;
+            	}
+        	}
+        	return;
+    	}
+    
+    	if (a.colType == COL_AABB && b.colType == COL_OBB) {
+        	Body temp = a;
+        	temp.colType = COL_OBB;
+        	D3DXMatrixIdentity(&temp.matRotation);
+        	D3DXVECTOR3 overlap, axis;
+        	if (CheckOBBvsOBB(b, temp, overlap, axis)) {
+            	if (aIsPlayer || bIsPlayer) {
+                	Body& player = aIsPlayer ? a : b;
+                	Body& other  = aIsPlayer ? b : a;
+                	float sign = aIsPlayer ? 1.0f : -1.0f;
+                	player.pos += overlap * sign;
+                	if (!other.isStatic && !other.isKinematic) {
+                    	other.velocity.x += player.velocity.x * 0.5f;
+                    	other.velocity.z += player.velocity.z * 0.5f;
+                	}
+                	if (axis.y > 0.7f) { player.velocity.y = 0.0f; player.isGrounded = true; }
+            	} else {
+                	if (!a.isStatic) a.pos += overlap * 0.5f;
+                	if (!b.isStatic) b.pos -= overlap * 0.5f;
+                	if (axis.y > 0.7f) b.isGrounded = true;
+            	}
+        	}
+        	return;
+    	}
+	}
 }
